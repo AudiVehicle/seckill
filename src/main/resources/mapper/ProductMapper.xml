@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.audi.seckill.product.dao.ProductDao">
+
+    <update id="sell">
+         update product
+              set rest = rest-1
+              where product_id=#{productId} and rest > 0
+    </update>
+
+
+</mapper>

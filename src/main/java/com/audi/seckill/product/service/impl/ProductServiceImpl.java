@@ -23,7 +23,7 @@ public class ProductServiceImpl implements ProductService {
      */
     @Override
 //    public synchronized Boolean sell(Integer productId) {
-    public synchronized Boolean sell(Integer productId) {
+    public Boolean sell(Integer productId) {
 
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>().eq(Product::getProductId, productId);
         Product product = productDao.selectOne(wrapper);
@@ -34,9 +34,12 @@ public class ProductServiceImpl implements ProductService {
         }
 
         log.info("商品还有余量，可以购买 \n");
-        product.setRest(product.getRest() - 1);
-        productDao.updateById(product);
-
+        int count = productDao.sell(product.getProductId());
+        if (count != 1) {
+            log.info("未能成功实现商品抢购");
+            return Boolean.FALSE;
+        }
+        log.info("成功抢购到商品");
         return Boolean.TRUE;
     }
 }

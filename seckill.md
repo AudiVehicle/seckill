@@ -104,6 +104,47 @@ public synchronized Boolean sell(Integer productId) {
 
 虽然可以解决并发安全问题，但是这无疑也会使新根极具下降，使用300个线程，1秒启动，tps大概只有100左右，与不加锁时相比，直接下降了一半。
 
+## 数据库加锁
+
+其实不是数据库加锁，是通过update语句加上条件判断，并且需要根据update语句影响的行数来判断是否真正秒杀成功。
+
+java代码如下：
+```java
+    public Boolean sell(Integer productId) {
+
+        LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>().eq(Product::getProductId, productId);
+        Product product = productDao.selectOne(wrapper);
+
+        if (null == product || product.getRest() <= 0) {
+            log.info("商品不存在或者已经卖完");
+            return Boolean.FALSE;
+        }
+
+        log.info("商品还有余量，可以购买 \n");
+        int count = productDao.sell(product.getProductId());
+        if (count != 1) {
+            log.info("未能成功实现商品抢购");
+            return Boolean.FALSE;
+        }
+        log.info("成功抢购到商品");
+        return Boolean.TRUE;
+    }
+```
+
+sql语句如下：
+```sql
+    <update id="sell">
+         update product
+              set rest = rest-1
+              where product_id=#{productId} and rest > 0
+    </update>
+```
+
+这种方式虽然也能实现并发控制，且我本机实测性能，300个线程，1秒启动，tps与不加任何锁的情况，差不了多少，大约差10左右。
+
+但是这种方式，相当于将并发的控制完全交给了数据库，一方面数据库本身执行sql压力大，另外一方面也会占用很多数据库连接池资源。
+因此，这也是一种不友好的方案。
+
 
 
 
