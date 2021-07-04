@@ -22,7 +22,8 @@ public class ProductServiceImpl implements ProductService {
      * @return
      */
     @Override
-    public Boolean sell(Integer productId) {
+//    public synchronized Boolean sell(Integer productId) {
+    public synchronized Boolean sell(Integer productId) {
 
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>().eq(Product::getProductId, productId);
         Product product = productDao.selectOne(wrapper);

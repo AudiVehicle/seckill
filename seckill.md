@@ -5,7 +5,7 @@
 - mybatis-plus：3.4.3
 - mysql：8.0.25
 - jmeter：5.4.1
-- vm配置：-Xmx500m -Xms500m -Xmn150m -XX:MetaspaceSize=200m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/dump -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -Xloggc:/Users/wangquanzhou/ideaProj/seckill/gc.log
+- vm配置：-Xmx500m -Xms500m -Xmn150m -XX:MetaspaceSize=200m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/dump -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -XX:+UseG1GC -Xloggc:/Users/wangquanzhou/ideaProj/seckill/gc.log
 
 # tag 1.0 版本
 
@@ -44,7 +44,7 @@ jmeter测试参数及结果：
 
 ### 是不是真的只有100人抢到
 
-通过搜索日志，我们发现，`商品还有余量，可以购买`这句日志被打印了134次，说明有134个人抢购成功了，
+通过搜索日志，我们发现，`商品还有余量，可以购买`这句日志被打印了134次，说明有134个人抢购成功了，出现了`超卖`的情况，
 但是却没有出现商品余量小于0的情况。这是为何？
 
 ![1](./image/WX20210704-105732@2x.png)
@@ -68,6 +68,42 @@ jmeter测试参数及结果：
 
 还是以A、B线程为例，假设现在数据库余量为1，A线程读取商品余量为1，if语句可以通过，然后执行减1的操作，更新到数据库，但是还未commit；
 B线程此时由于mysql snapshot的存在，读取到的余量也为1，同样执行减1操作，1-1=0，因此不会出现小于0的情况。
+
+## 性能统计
+
+经过反复多次尝试，使用300个线程，1秒启动，tps大概在200左右。
+
+
+# tag 2.0 版本
+
+为了解决1.0版本的`少卖`、`超卖`问题，我们需要对代码做点修改，最简单的办法就是加锁，有两种方案：
+- 代码加锁
+- 数据库加锁
+
+## 代码加锁
+
+最简单的办法就是在秒杀的核心代码上加`synchronized`关键字，如下所示：
+```java
+public synchronized Boolean sell(Integer productId) {
+
+        LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>().eq(Product::getProductId, productId);
+        Product product = productDao.selectOne(wrapper);
+
+        if (null == product || product.getRest() <= 0) {
+            log.info("商品不存在或者已经卖完");
+            return Boolean.FALSE;
+        }
+
+        log.info("商品还有余量，可以购买 \n");
+        product.setRest(product.getRest() - 1);
+        productDao.updateById(product);
+
+        return Boolean.TRUE;
+    }
+```
+
+虽然可以解决并发安全问题，但是这无疑也会使新根极具下降，使用300个线程，1秒启动，tps大概只有100左右，与不加锁时相比，直接下降了一半。
+
 
 
 
