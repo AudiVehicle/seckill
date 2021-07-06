@@ -5,6 +5,7 @@
 - mybatis-plus：3.4.3
 - mysql：8.0.25
 - jmeter：5.4.1
+- redis：
 - vm配置：-Xmx500m -Xms500m -Xmn150m -XX:MetaspaceSize=200m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/dump -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -XX:+UseG1GC -Xloggc:/Users/wangquanzhou/ideaProj/seckill/gc.log
 
 # tag 1.0 版本
@@ -145,7 +146,14 @@ sql语句如下：
 但是这种方式，相当于将并发的控制完全交给了数据库，一方面数据库本身执行sql压力大，另外一方面也会占用很多数据库连接池资源。
 因此，这也是一种不友好的方案。
 
+# tag 3.0 版本
 
+都说redis是提高系统性能的利器，那我们看看我们怎么使用redis既可以提高性能，又能保证并发安全。
+
+参考阿里云的[redis秒杀系统设计](https://help.aliyun.com/document_detail/63920.html?spm=5176.22414175.sslink.10.252c65aaa3OzBs) 
+这里我采用的方案也是异步扣减库存的模式，即redis预先使用lua脚本进行库存扣减操作，然后再使用异步线程定时去扫redis里剩余的库存量。
+
+实测时，发现tomcat的最大线程数会成为系统瓶颈，最大线程数改为500，系统的tps大概可以达到500左右。
 
 
 
