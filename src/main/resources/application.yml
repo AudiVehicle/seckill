@@ -22,4 +22,4 @@ mybatis-plus:
 server:
   tomcat:
     threads:
-      max: 1000
+      max: 500
