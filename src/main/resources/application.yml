@@ -1,9 +1,9 @@
 spring:
   redis:
-    host: 172.20.150.115
+    host: 192.168.1.5
     port: 6300
   datasource:
-    url: jdbc:mysql://172.20.150.115:3300/seckill?useUnicode=true&characterEncoding=UTF-8&zeroDateTimestampBehavior=convertToNull&allowMultiQueries=true
+    url: jdbc:mysql://192.168.1.5:3300/seckill?useUnicode=true&characterEncoding=UTF-8&zeroDateTimestampBehavior=convertToNull&allowMultiQueries=true
     username: root
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver

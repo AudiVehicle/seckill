@@ -4,7 +4,6 @@ local rest = tonumber(redis.call("GET", key))
 if not rest then
     return resultFlag
 end
---io.write(rest)
 if rest > 0 then
     local ret = redis.call("DECR", key)
     return ret

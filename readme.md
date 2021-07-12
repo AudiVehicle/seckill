@@ -153,7 +153,31 @@ sql语句如下：
 参考阿里云的[redis秒杀系统设计](https://help.aliyun.com/document_detail/63920.html?spm=5176.22414175.sslink.10.252c65aaa3OzBs) 
 这里我采用的方案也是异步扣减库存的模式，即redis预先使用lua脚本进行库存扣减操作，然后再使用异步线程定时去扫redis里剩余的库存量。
 
-实测时，发现tomcat的最大线程数会成为系统瓶颈，最大线程数改为500，系统的tps大概可以达到500左右。
+lua脚本如下：
+```lua
+local resultFlag = 0
+local key = tonumber(KEYS[1])
+local rest = tonumber(redis.call("GET", key))
+if not rest then
+    return resultFlag
+end
+if rest > 0 then
+    local ret = redis.call("DECR", key)
+    return ret
+end
+return resultFlag
+```
+这里我只传入了一个参数`KEYS[1]`，代表了商品的id。脚本首先获取商品的余量，如果余量大于0，就进行库存减1操作。
 
+后续，异步定时任务会每隔2秒将商品余量数据刷新到redis。
 
+实测时，发现tomcat的最大线程数会成为系统瓶颈，将最大线程数改为500，，系统的tps大概可以达到500左右。
+
+| 线程数        | 启动时间(秒)   |  tps  |
+| --------   | :-----:  | :----:  |
+| 1500     | 2 |   543     |
+| 1500        |   4   |   是，余量为0   |
+| 150        |    3    |  是，余量为0  |
+| 150        |    2    |  是，余量为0  |
+| 150        |    1    |  否，余量为40  |
 
