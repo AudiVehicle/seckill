@@ -31,5 +31,4 @@ public class Product {
      * 商品余量
      */
     private Integer rest;
-
 }

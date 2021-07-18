@@ -30,7 +30,7 @@ public class ProductServiceImpl implements ProductService {
     private static RedisScript<Long> script = null;
 
     /**
-     * 卖出商品
+     * 卖出商品（无锁化）
      *
      * @param productId
      * @return
