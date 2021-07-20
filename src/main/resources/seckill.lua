@@ -1,5 +1,5 @@
 local resultFlag = 0
-local key = tonumber(KEYS[1])
+local key = KEYS[1]
 local rest = tonumber(redis.call("GET", key))
 if not rest then
     return resultFlag

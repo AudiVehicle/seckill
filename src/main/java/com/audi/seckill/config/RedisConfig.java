@@ -49,7 +49,7 @@ public class RedisConfig extends CachingConfigurerSupport {
         template.setValueSerializer(fastJsonRedisSerializer);
         template.setHashValueSerializer(fastJsonRedisSerializer);
         // key的序列化采用StringRedisSerializer
-        template.setKeySerializer(fastJsonRedisSerializer);
+        template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
 
         template.setConnectionFactory(redisConnectionFactory);

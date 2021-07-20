@@ -30,7 +30,7 @@ public class LoadDataConfig {
         log.info("开始预加载商品数据到redis");
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>().eq(Product::getProductId, 1111);
         Product product = productDao.selectOne(wrapper);
-        redisTemplate.opsForValue().set(1111, product.getRest());
+        redisTemplate.opsForValue().set("product_1111", product.getRest());
         log.info("预加载商品数据到redis成功");
     }
 }
