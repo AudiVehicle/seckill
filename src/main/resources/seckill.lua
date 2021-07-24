@@ -1,4 +1,5 @@
 local resultFlag = 0
+-- key格式为 product_xxx
 local key = KEYS[1]
 local rest = tonumber(redis.call("GET", key))
 if not rest then

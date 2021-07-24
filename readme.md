@@ -171,7 +171,7 @@ return resultFlag
 
 后续，异步定时任务会每隔2秒将商品余量数据刷新到redis。
 
-实测时，发现tomcat的最大线程数会成为系统瓶颈，将最大线程数改为500，，系统的tps大概可以达到550左右。
+实测时，发现tomcat的最大线程数会成为系统瓶颈，将最大线程数改为500，系统的tps大概可以达到550左右。
 
 # tag 4.0 版本
 
@@ -179,6 +179,37 @@ return resultFlag
 
 为了实现这个功能，我们需要记录哪些用户已经成功抢购了商品，自然而然的就引出了订单的这个概念，之前我们讨论的情况还仅仅限于`减库存`.
 
-基本实现了一个商品抢购、订单生成、订单持久化的逻辑，目前测试性能还不错，后续需要做相关的优化，包括规范变量命名等。
+用户id使用jmeter的随机字符串生成器，如下图所示：
+![2](./image/jmeter_userId.jpg)
+
+基本实现了一个商品抢购、订单生成、订单持久化的逻辑，目前测试性能还不错，基本和3.0版本的差不多，在tps500-600之间。
+
+下面的lua脚本是根据3.0版本里的脚本修改而来，除了判断商品是否有余量以外，还需要判断用户之前是否有购买记录，详细脚本如下：
+```lua
+-- 生成的订单数据存入redis hash表结构中，billKey="bill"_${productId}，hkey=${userId}，hvalue=0 or 1 （1表示已持久化到db）
+-- 返回不同的值，可以判断程序代码执行的分支逻辑
+
+local billKey = KEYS[1]
+local userId = KEYS[2]
+local productKey = KEYS[3]
+local exist = redis.call("HGET", billKey, userId);
+if exist then
+    -- 已经购买过商品，直接return -1
+    return -1;
+end
+
+local rest = tonumber(redis.call("GET", productKey))
+if not rest then
+    return -2
+end
+if rest > 0 then
+    local ret = redis.call("DECR", productKey)
+    redis.call("HSET", billKey, userId, 0);
+    return ret
+end
+return -3
+```
+
+在抢购成功以后，生成的订单数据需要持久化到数据库，持久化完成后，需要将对应的redis数据标记为「已持久化」。
 
 后续实现商品的退单功能。

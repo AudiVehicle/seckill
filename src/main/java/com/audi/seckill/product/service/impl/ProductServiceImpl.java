@@ -1,5 +1,6 @@
 package com.audi.seckill.product.service.impl;
 
+import com.audi.seckill.product.constant.RedisKeyConst;
 import com.audi.seckill.product.dao.ProductDao;
 import com.audi.seckill.product.entity.Bill;
 import com.audi.seckill.product.entity.Product;
@@ -48,7 +49,7 @@ public class ProductServiceImpl implements ProductService {
 //    public synchronized Boolean sell(Integer productId) {
     public Boolean sell(Integer productId) {
 
-        String redisKey = "product_" + productId;
+        String redisKey = RedisKeyConst.PRODUCT_PREFIX + productId;
 
         Integer rest = (Integer) redisTemplate.opsForValue().get(redisKey);
 
@@ -81,8 +82,8 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Boolean sellWithUserInfo(Integer productId, String userId) {
 
-        String billKey = "bill_" + productId;
-        String productKey = "product_" + productId;
+        String billKey = RedisKeyConst.BILL_PREFIX + productId;
+        String productKey = RedisKeyConst.PRODUCT_PREFIX + productId;
 
         Integer rest = (Integer) redisTemplate.opsForValue().get(productKey);
 
@@ -112,7 +113,7 @@ public class ProductServiceImpl implements ProductService {
         log.info("开始刷新redis商品余量信息到数据库");
 
         Integer productId = 1111;
-        String redisKey = "product_1111";
+        String redisKey = RedisKeyConst.PRODUCT_PREFIX + productId;
         Integer rest = (Integer) redisTemplate.opsForValue().get(redisKey);
 
         log.info("从redis获取到商品 {} 的余量为 {}", productId, rest);
@@ -130,7 +131,7 @@ public class ProductServiceImpl implements ProductService {
     /**
      * 定时获取redis的商品余量、订单信息刷新到数据库
      * <p>
-     * 这里更为委托的做法其实应该是使用分布式锁，但是考虑渐变直接使用synchronized关键字加锁
+     * 这里更为委托的做法其实应该是使用分布式锁，但是考虑到3秒一次，并发不算高，直接使用synchronized关键字加锁
      */
     @Scheduled(initialDelay = 10 * 1000, fixedRate = 3 * 1000)
     public synchronized void refreshBill() {
@@ -138,12 +139,13 @@ public class ProductServiceImpl implements ProductService {
         refreshProduct();
 
         Integer productId = 1111;
+        String billKey = RedisKeyConst.BILL_PREFIX + productId;
 
         log.info("定时获取redis的订单信息刷新到数据库");
 
         // 这里数据量大的时候，应该使用游标
         // 但是考虑到实际情况，其实不可能会很大，因为抢购的商品数量是有限的
-        Map<String, Integer> map = (Map<String, Integer>) redisTemplate.opsForHash().entries("bill_" + productId);
+        Map<String, Integer> map = (Map<String, Integer>) redisTemplate.opsForHash().entries(billKey);
         // 过滤掉已经持久化过的订单数据
         map = map.entrySet().stream().filter(e -> e.getValue().equals(0)).collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
 
@@ -168,7 +170,7 @@ public class ProductServiceImpl implements ProductService {
 
         // 更新redis数据，标记已经持久化过的数据
         map.entrySet().forEach(e -> e.setValue(1));
-        redisTemplate.opsForHash().putAll("bill_" + productId, map);
+        redisTemplate.opsForHash().putAll(billKey, map);
         log.info("成功修改订单数据的持久化标志位");
 
     }
@@ -192,5 +194,4 @@ public class ProductServiceImpl implements ProductService {
         }
         script = RedisScript.of(str, Long.class);
     }
-
 }

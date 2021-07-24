@@ -1,5 +1,6 @@
 package com.audi.seckill.product.config;
 
+import com.audi.seckill.product.constant.RedisKeyConst;
 import com.audi.seckill.product.dao.ProductDao;
 import com.audi.seckill.product.entity.Product;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -28,9 +29,11 @@ public class LoadDataConfig {
     @PostConstruct
     public void loadProductData() {
         log.info("开始预加载商品数据到redis");
-        LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>().eq(Product::getProductId, 1111);
+        Integer productId = 1111;
+        LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>().eq(Product::getProductId, productId);
         Product product = productDao.selectOne(wrapper);
-        redisTemplate.opsForValue().set("product_1111", product.getRest());
+        // 商品余量信息加载到redis，key = product_1111  value = 商品余量
+        redisTemplate.opsForValue().set(RedisKeyConst.PRODUCT_PREFIX + productId, product.getRest());
         log.info("预加载商品数据到redis成功");
     }
 }
